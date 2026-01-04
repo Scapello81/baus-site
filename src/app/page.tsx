@@ -9,22 +9,32 @@ export default function Home() {
 
         <div className={styles.card}>
           <div className={styles.row}>
-            <span className={styles.label}>Сайт:</span>
-            <a className={styles.link} href="https://baus-online.de">
+            <span className={styles.label}>Site:</span>
+            <a
+              className={styles.link}
+              href="https://baus-online.de"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               baus-online.de
             </a>
           </div>
 
           <div className={styles.row}>
             <span className={styles.label}>Control:</span>
-            <a className={styles.link} href="https://control.baus-online.de">
+            <a
+              className={styles.link}
+              href="https://control.baus-online.de"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               control.baus-online.de
             </a>
           </div>
         </div>
 
         <div className={styles.card}>
-          <h2 className={styles.h2}>Управление</h2>
+          <h2 className={styles.h2}>Control</h2>
           <ControlButton />
         </div>
       </main>
