@@ -1,0 +1,138 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BMW F900R Kauf-Check Pro</title>
+<style>
+body{font-family:Arial,sans-serif;max-width:1000px;margin:20px auto;padding:20px}
+.card{border:1px solid #ccc;padding:12px;margin:8px 0;border-radius:8px}
+.critical{border:2px solid #c00;background:#ffeaea}
+.top{position:sticky;top:0;background:white;padding:15px;border-bottom:2px solid #ccc}
+input,select{padding:6px;margin:4px}
+.big{font-size:26px;font-weight:bold}
+.good{color:green;font-weight:bold}
+.warn{color:orange;font-weight:bold}
+.bad{color:red;font-weight:bold}
+</style>
+</head>
+<body>
+
+<div class="top">
+<h2>BMW F900R Kauf-Check Pro</h2>
+
+Modelljahr:
+<select id="year">
+<option value="2020">2020</option>
+<option value="2021">2021</option>
+<option value="2022">2022</option>
+<option value="2023" selected>2023</option>
+<option value="2024">2024</option>
+<option value="2025">2025</option>
+<option value="2026">2026</option>
+</select>
+
+Kilometerstand:
+<input type="number" id="km" value="15000">
+
+<div class="big">
+Marktwert: <span id="market">9200</span> €
+</div>
+
+<div class="big">
+Ermittelter Wert: <span id="result">9200</span> €
+</div>
+
+<div class="big">
+Angebotspreis:
+<input type="number" id="offer" value="7990">
+</div>
+
+<div id="status"></div>
+</div>
+
+<div class="card critical"><b>🚨 Unfall mit Rahmen-, Gabel- oder Schwingenschaden</b>
+<label><input type="checkbox" data-minus="2500"> Ja (-2500 €)</label></div>
+
+<div class="card critical"><b>🚨 Keine nachvollziehbare Servicehistorie</b>
+<label><input type="checkbox" data-minus="1000"> Ja (-1000 €)</label></div>
+
+<div class="card critical"><b>🚨 Gabel undicht</b>
+<label><input type="checkbox" data-minus="600"> Ja (-600 €)</label></div>
+
+<div class="card"><b>Umfaller vorhanden</b><label><input type="checkbox" data-minus="500"> Ja (-500 €)</label></div>
+<div class="card"><b>Keine BMW Garantie</b><label><input type="checkbox" data-minus="400"> Ja (-400 €)</label></div>
+<div class="card"><b>Service überfällig</b><label><input type="checkbox" data-minus="300"> Ja (-300 €)</label></div>
+<div class="card"><b>Hinterreifen bald fällig</b><label><input type="checkbox" data-minus="250"> Ja (-250 €)</label></div>
+<div class="card"><b>Vorderreifen bald fällig</b><label><input type="checkbox" data-minus="200"> Ja (-200 €)</label></div>
+<div class="card"><b>Kette und Ritzel bald fällig</b><label><input type="checkbox" data-minus="300"> Ja (-300 €)</label></div>
+<div class="card"><b>Nächster Service < 1000 km</b><label><input type="checkbox" data-minus="250"> Ja (-250 €)</label></div>
+<div class="card"><b>Zweitschlüssel fehlt</b><label><input type="checkbox" data-minus="300"> Ja (-300 €)</label></div>
+<div class="card"><b>ESA defekt</b><label><input type="checkbox" data-minus="1000"> Ja (-1000 €)</label></div>
+<div class="card"><b>Quickshifter defekt</b><label><input type="checkbox" data-minus="500"> Ja (-500 €)</label></div>
+<div class="card"><b>Tempomat defekt</b><label><input type="checkbox" data-minus="300"> Ja (-300 €)</label></div>
+<div class="card"><b>RDC defekt</b><label><input type="checkbox" data-minus="150"> Ja (-150 €)</label></div>
+<div class="card"><b>Kratzer an Motordeckeln</b><label><input type="checkbox" data-minus="500"> Ja (-500 €)</label></div>
+<div class="card"><b>Kratzer an Lenker / Hebeln / Fußrasten</b><label><input type="checkbox" data-minus="300"> Ja (-300 €)</label></div>
+
+<script>
+
+function basePrice(year,km){
+ let p=0;
+
+ if(year==2020)p=7200;
+ if(year==2021)p=7700;
+ if(year==2022)p=8400;
+ if(year==2023)p=9200;
+ if(year==2024)p=9800;
+ if(year==2025)p=10400;
+ if(year==2026)p=11000;
+
+ p -= Math.max(0,(km-10000)/1000)*50;
+
+ return Math.round(p);
+}
+
+function calc(){
+
+ const year=parseInt(document.getElementById("year").value);
+ const km=parseInt(document.getElementById("km").value)||0;
+
+ let market=basePrice(year,km);
+
+ document.getElementById("market").innerText=market;
+
+ let result=market;
+
+ document.querySelectorAll("input[type=checkbox]").forEach(c=>{
+   if(c.checked) result-=parseInt(c.dataset.minus);
+ });
+
+ document.getElementById("result").innerText=result;
+
+ let offer=parseInt(document.getElementById("offer").value)||0;
+ let diff=result-offer;
+
+ let status="";
+
+ if(diff>500){
+   status='<h2 class="good">✅ Kaufen (+ '+diff+' € unter Marktwert)</h2>';
+ }
+ else if(diff>-500){
+   status='<h2 class="warn">🟡 Preis ist fair</h2>';
+ }
+ else{
+   status='<h2 class="bad">❌ Zu teuer ('+Math.abs(diff)+' € über Marktwert)</h2>';
+ }
+
+ document.getElementById("status").innerHTML=status;
+}
+
+document.querySelectorAll("input,select").forEach(e=>e.addEventListener("change",calc));
+calc();
+
+</script>
+
+</body>
+</html>
