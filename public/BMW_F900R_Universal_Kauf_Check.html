@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BMW F900R Universal Kauf-Check</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;width:100%;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+body{font-family:Arial,Helvetica,sans-serif;max-width:1100px;margin:0 auto;padding:10px;background:#f3f4f6;color:#111827}
+h1{font-size:22px;margin:6px 0 10px} h2{font-size:20px;margin:12px 0 8px}
+.top,.section{background:#fff;border:1px solid #d1d5db;border-radius:12px;padding:12px;margin:12px 0}
+.top{box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+.box{background:#f9fafb;border:1px solid #d1d5db;padding:9px;border-radius:10px}.box b{display:block;margin-bottom:5px}
+.value{font-size:23px;font-weight:bold}
+select,input[type=number],input[type=text]{width:100%;padding:8px;border:1px solid #d1d5db;border-radius:8px;font-size:16px;background:#fff}
+.card{border:1px solid #d1d5db;padding:9px;margin:7px 0;border-radius:10px;background:#fff}
+.card label{display:flex;gap:9px;align-items:flex-start;cursor:pointer;line-height:1.3}
+input[type=checkbox]{width:22px;height:22px;flex:0 0 auto}
+.plus{border-left:5px solid #15803d}.minus{border-left:5px solid #6b7280}.critical{border:2px solid #b91c1c;background:#fee2e2}
+.amountPlus{color:#15803d;font-weight:bold;white-space:nowrap}.amountMinus{color:#b91c1c;font-weight:bold;white-space:nowrap}
+.small{font-size:13px;color:#4b5563;margin-top:4px}.status{font-size:20px;margin-top:10px;padding:10px;border-radius:10px;background:#f9fafb;line-height:1.35}
+.good{color:#15803d;font-weight:bold}.warn{color:#ca8a04;font-weight:bold}.bad{color:#b91c1c;font-weight:bold}
+button{width:100%;padding:11px 14px;border:0;border-radius:8px;background:#111827;color:white;font-size:16px;cursor:pointer;margin:6px 0}
+button.secondary{background:#4b5563}
+.summaryLine{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #d1d5db;padding:5px 0}
+@media(min-width:760px){button{width:auto;margin-right:6px}}
+@media print{body{background:white}button{display:none}.top{box-shadow:none}}
+</style>
+</head>
+<body>
+
+<div class="top">
+<h1>BMW F900R Universal Kauf-Check</h1>
+<div class="grid">
+<div class="box"><b>Modelljahr</b><select id="year"><option>2020</option><option>2021</option><option>2022</option><option selected>2023</option><option>2024</option><option>2025</option><option>2026</option></select></div>
+<div class="box"><b>Kilometerstand</b><input type="number" id="km" value="15042" min="0" step="100"></div>
+<div class="box"><b>Angebotspreis</b><input type="number" id="offer" value="7990" min="0" step="50"></div>
+<div class="box"><b>Erstzulassung</b><input type="text" id="ez" value="03/2024"></div>
+<div class="box"><b>Verkäufer</b><input type="text" id="seller" value="BMW Kaiserdamm"></div>
+<div class="box"><b>Vorbesitzer</b><select id="owners"><option value="0">1–2 Vorbesitzer / normal</option><option value="-300">3 Vorbesitzer (-300 €)</option><option value="-700">4+ Vorbesitzer (-700 €)</option></select></div>
+</div>
+
+<div class="grid">
+<div class="box"><b>Basiswert</b><div class="value"><span id="base">0</span> €</div></div>
+<div class="box"><b>Extras</b><div class="value">+<span id="extras">0</span> €</div></div>
+<div class="box"><b>Abzüge</b><div class="value">-<span id="deductions">0</span> €</div></div>
+<div class="box"><b>Ermittelter Wert</b><div class="value"><span id="result">0</span> €</div></div>
+</div>
+<div id="status" class="status"></div>
+<button onclick="window.print()">PDF / Drucken</button>
+<button class="secondary" onclick="presetFull()">Preset: Vollausstattung</button>
+<button class="secondary" onclick="presetEmpty()">Alle Extras aus</button>
+<button class="secondary" onclick="resetDefects()">Nur Mängel zurücksetzen</button>
+</div>
+
+<div class="section"><h2>1. Kritische rote Punkte — wenn ja, besser nicht kaufen</h2>
+<div class="card critical"><label><input type="checkbox" data-minus="5000" data-critical="true"><span><b>VIN stimmt nicht mit Fahrzeugpapieren überein</b> <span class="amountMinus">(-5.000 € / NICHT KAUFEN)</span></span></label></div>
+<div class="card critical"><label><input type="checkbox" data-minus="3000" data-critical="true"><span><b>Rahmen, Gabel oder Schwinge beschädigt / repariert</b> <span class="amountMinus">(-3.000 € / NICHT KAUFEN)</span></span></label></div>
+<div class="card critical"><label><input type="checkbox" data-minus="2000" data-critical="true"><span><b>Unfallschaden nicht sauber dokumentiert</b> <span class="amountMinus">(-2.000 €)</span></span></label></div>
+<div class="card critical"><label><input type="checkbox" data-minus="1200" data-critical="true"><span><b>Keine nachvollziehbare Servicehistorie</b> <span class="amountMinus">(-1.200 €)</span></span></label></div>
+<div class="card critical"><label><input type="checkbox" data-minus="1000" data-critical="true"><span><b>Händler verweigert Probefahrt</b> <span class="amountMinus">(-1.000 €)</span></span></label></div>
+<div class="card critical"><label><input type="checkbox" data-minus="1000" data-critical="true"><span><b>Motorrad war Mietfahrzeug / Vermietung</b> <span class="amountMinus">(-1.000 €)</span></span></label></div>
+<div class="card critical"><label><input type="checkbox" data-minus="1000" data-critical="true"><span><b>ESA Fehlermeldung / ESA defekt</b> <span class="amountMinus">(-1.000 €)</span></span></label></div>
+<div class="card critical"><label><input type="checkbox" data-minus="700" data-critical="true"><span><b>Gabel undicht</b> <span class="amountMinus">(-700 €)</span></span></label></div>
+<div class="card critical"><label><input type="checkbox" data-minus="900" data-critical="true"><span><b>Motor verliert Öl / Kühlmittel</b> <span class="amountMinus">(-900 €)</span></span></label></div>
+<div class="card critical"><label><input type="checkbox" data-minus="1000" data-critical="true"><span><b>Getriebe springt aus dem Gang</b> <span class="amountMinus">(-1.000 €)</span></span></label></div>
+</div>
+
+<div class="section"><h2>2. Herkunft / Nutzung / Garantie</h2>
+<div class="card plus"><label><input type="checkbox" data-plus="200"><span><b>Vorführer gewesen</b> <span class="amountPlus">(+200 €)</span><div class="small">Plus wegen BMW-Historie, aber nicht mehr, weil Probefahrten hart gefahren werden können.</div></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="500"><span><b>BMW Premium Selection / BMW Garantie vorhanden</b> <span class="amountPlus">(+500 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="300"><span><b>Restliche Werksgarantie bis mindestens 2027</b> <span class="amountPlus">(+300 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="200"><span><b>Alle Wartungen bei BMW dokumentiert</b> <span class="amountPlus">(+200 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="400"><span><b>Keine Garantie / nur gesetzliche Gewährleistung</b> <span class="amountMinus">(-400 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="300"><span><b>Rückrufaktionen nicht erledigt</b> <span class="amountMinus">(-300 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="300"><span><b>Finanzierungsrückläufer / unklare Verkaufshistorie</b> <span class="amountMinus">(-300 €)</span></span></label></div>
+</div>
+
+<div class="section"><h2>3. Ausstattung F900R — Extras konkret bewerten</h2>
+<div class="small">Alles ankreuzen, was am Motorrad wirklich vorhanden und funktionstüchtig ist.</div><div class="grid">
+<div class="card plus"><label><input type="checkbox" data-plus="450" data-extra="true"><span>Dynamic ESA <span class="amountPlus">(+450 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="300" data-extra="true"><span>Schaltassistent Pro <span class="amountPlus">(+300 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="300" data-extra="true"><span>Adaptives Kurvenlicht <span class="amountPlus">(+300 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="250" data-extra="true"><span>Headlight Pro <span class="amountPlus">(+250 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="250" data-extra="true"><span>Tempomat <span class="amountPlus">(+250 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="250" data-extra="true"><span>Fahrmodi Pro <span class="amountPlus">(+250 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="200" data-extra="true"><span>Keyless Ride <span class="amountPlus">(+200 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="180" data-extra="true"><span>Heizgriffe <span class="amountPlus">(+180 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="150" data-extra="true"><span>RDC Reifendruckkontrolle <span class="amountPlus">(+150 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="150" data-extra="true"><span>Connectivity / TFT / App <span class="amountPlus">(+150 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="100" data-extra="true"><span>ABS Pro <span class="amountPlus">(+100 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="100" data-extra="true"><span>DTC <span class="amountPlus">(+100 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="100" data-extra="true"><span>MSR Motorschleppmomentregelung <span class="amountPlus">(+100 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="80" data-extra="true"><span>Intelligenter Notruf <span class="amountPlus">(+80 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="80" data-extra="true"><span>Teleservices <span class="amountPlus">(+80 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="150" data-extra="true"><span>Hauptständer <span class="amountPlus">(+150 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="150" data-extra="true"><span>Kofferhalter links/rechts <span class="amountPlus">(+150 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="200" data-extra="true"><span>Topcase <span class="amountPlus">(+200 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="180" data-extra="true"><span>Zusatzscheinwerfer <span class="amountPlus">(+180 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="150" data-extra="true"><span>Sturzbügel <span class="amountPlus">(+150 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="100" data-extra="true"><span>Handprotektoren <span class="amountPlus">(+100 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="150" data-extra="true"><span>Navi-Vorbereitung <span class="amountPlus">(+150 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="200" data-extra="true"><span>M Endurance Kette <span class="amountPlus">(+200 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="350" data-extra="true"><span>Akrapovic / hochwertiger Auspuff mit ABE <span class="amountPlus">(+350 €)</span></span></label></div>
+</div></div>
+
+<div class="section"><h2>4. Pakete</h2><div class="grid">
+<div class="card plus"><label><input type="checkbox" data-plus="250" data-extra="true"><span>Touring-Paket <span class="amountPlus">(+250 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="250" data-extra="true"><span>Dynamik-Paket <span class="amountPlus">(+250 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="200" data-extra="true"><span>Aktiv-Paket <span class="amountPlus">(+200 €)</span></span></label></div>
+</div><div class="small">Pakete können Überschneidungen mit Einzeloptionen haben. Für grobe Marktberechnung trotzdem praktisch.</div></div>
+
+<div class="section"><h2>5. Dokumente / Zulassung / Schlüssel</h2>
+<div class="card minus"><label><input type="checkbox" data-minus="500"><span>Serviceheft fehlt <span class="amountMinus">(-500 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="250"><span>Wartungsrechnungen fehlen <span class="amountMinus">(-250 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="300"><span>Inspektion überfällig <span class="amountMinus">(-300 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="250"><span>Nächster Service in weniger als 1000 km <span class="amountMinus">(-250 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="150"><span>TÜV / HU weniger als 12 Monate gültig <span class="amountMinus">(-150 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="300"><span>Zweitschlüssel fehlt <span class="amountMinus">(-300 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="150"><span>Bedienungsanleitung / Bordmappe fehlt <span class="amountMinus">(-150 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="300"><span>Nachträgliche Teile ohne ABE / Eintragung <span class="amountMinus">(-300 €)</span></span></label></div>
+</div>
+
+<div class="section"><h2>6. Reifen / Räder</h2>
+<div class="card minus"><label><input type="checkbox" data-minus="300"><span>Hinterreifen bald fällig &lt; 2,0 mm <span class="amountMinus">(-300 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="250"><span>Vorderreifen bald fällig &lt; 2,0 mm <span class="amountMinus">(-250 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="200"><span>Reifen alt: DOT älter als 5 Jahre <span class="amountMinus">(-200 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="150"><span>Vorne/hinten unterschiedliche Reifenmodelle <span class="amountMinus">(-150 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="250"><span>Felge beschädigt / Schlag / starke Bordsteinschäden <span class="amountMinus">(-250 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="250"><span>Neue Reifen oder fast neu &gt; 4 mm <span class="amountPlus">(+250 €)</span></span></label></div>
+</div>
+
+<div class="section"><h2>7. Kette / Antrieb</h2>
+<div class="card minus"><label><input type="checkbox" data-minus="150"><span>Kette rostig <span class="amountMinus">(-150 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="350"><span>Kette ungleichmäßig gelängt <span class="amountMinus">(-350 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="350"><span>Kette und Ritzel bald fällig <span class="amountMinus">(-350 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="150"><span>Stark verschmutzte / schlecht gepflegte Kette <span class="amountMinus">(-150 €)</span></span></label></div>
+<div class="card plus"><label><input type="checkbox" data-plus="250"><span>Kettensatz neu / nachweislich frisch <span class="amountPlus">(+250 €)</span></span></label></div>
+</div>
+
+<div class="section"><h2>8. Bremsen</h2>
+<div class="card minus"><label><input type="checkbox" data-minus="350"><span>Bremsscheiben mit deutlicher Kante <span class="amountMinus">(-350 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="180"><span>Bremsbeläge bald fällig <span class="amountMinus">(-180 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="500"><span>Pulsieren / Rubbeln beim Bremsen <span class="amountMinus">(-500 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="250"><span>Bremsflüssigkeit alt / nicht dokumentiert <span class="amountMinus">(-250 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="400"><span>ABS Warnleuchte / Fehler <span class="amountMinus">(-400 €)</span></span></label></div>
+</div>
+
+<div class="section"><h2>9. Fahrwerk / Lenkung</h2>
+<div class="card minus"><label><input type="checkbox" data-minus="500"><span>Stoßdämpfer schwitzt Öl <span class="amountMinus">(-500 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="400"><span>Lenkkopflager rastet / Spiel <span class="amountMinus">(-400 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="350"><span>Vorderrad läuft nicht sauber / Unwucht <span class="amountMinus">(-350 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="350"><span>Schwinge / Hinterradlager Spiel <span class="amountMinus">(-350 €)</span></span></label></div>
+</div>
+
+<div class="section"><h2>10. Elektronik / Assistenzsysteme</h2>
+<div class="card minus"><label><input type="checkbox" data-minus="400"><span>TFT Display beschädigt / Pixelfehler <span class="amountMinus">(-400 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="250"><span>Connectivity funktioniert nicht <span class="amountMinus">(-250 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="250"><span>Heizgriffe funktionieren nicht <span class="amountMinus">(-250 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="350"><span>Tempomat funktioniert nicht <span class="amountMinus">(-350 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="200"><span>RDC Sensor defekt / Batterie leer <span class="amountMinus">(-200 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="350"><span>Keyless funktioniert nicht zuverlässig <span class="amountMinus">(-350 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="350"><span>Adaptives Kurvenlicht / Headlight Pro Fehler <span class="amountMinus">(-350 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="300"><span>Zusatzscheinwerfer ohne Funktion / schlecht montiert <span class="amountMinus">(-300 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="200"><span>Batterie schwach <span class="amountMinus">(-200 €)</span></span></label></div>
+</div>
+
+<div class="section"><h2>11. Motor / Getriebe / Kupplung</h2>
+<div class="card minus"><label><input type="checkbox" data-minus="600"><span>Kaltstart schlecht / geht aus <span class="amountMinus">(-600 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="500"><span>Unruhiger Leerlauf / Fehlzündungen <span class="amountMinus">(-500 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="600"><span>Motor macht unnormale Geräusche <span class="amountMinus">(-600 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="800"><span>Kupplung rutscht <span class="amountMinus">(-800 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="600"><span>Getriebe schaltet unsauber <span class="amountMinus">(-600 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="400"><span>Quickshifter arbeitet schlecht / ruckelt stark <span class="amountMinus">(-400 €)</span></span></label></div>
+</div>
+
+<div class="section"><h2>12. Testfahrt — nach 10 bis 20 Minuten</h2>
+<div class="card minus"><label><input type="checkbox" data-minus="600"><span>Motorrad zieht nach links/rechts <span class="amountMinus">(-600 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="500"><span>Lenkerflattern bei 60–100 km/h <span class="amountMinus">(-500 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="350"><span>Starke unnormale Vibrationen <span class="amountMinus">(-350 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="400"><span>Motorrad wird ungewöhnlich heiß / Lüfter läuft permanent <span class="amountMinus">(-400 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="250"><span>Geräusche beim Lastwechsel <span class="amountMinus">(-250 €)</span></span></label></div>
+</div>
+
+<div class="section"><h2>13. Optik / Sturzspuren</h2>
+<div class="card minus"><label><input type="checkbox" data-minus="600"><span>Umfaller vorhanden <span class="amountMinus">(-600 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="550"><span>Kratzer an Motordeckeln <span class="amountMinus">(-550 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="350"><span>Kratzer an Lenker / Hebeln / Fußrasten <span class="amountMinus">(-350 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="250"><span>Kratzer an Felgen <span class="amountMinus">(-250 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="400"><span>Kratzer oder Delle am Tank <span class="amountMinus">(-400 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="250"><span>Kratzer am Auspuff <span class="amountMinus">(-250 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="250"><span>Kunststoffteile / Verkleidung beschädigt <span class="amountMinus">(-250 €)</span></span></label></div>
+<div class="card minus"><label><input type="checkbox" data-minus="150"><span>Schrauben rostig / Korrosion sichtbar <span class="amountMinus">(-150 €)</span></span></label></div>
+</div>
+
+<div class="section"><h2>14. Fragen an Verkäufer — einfach ablesen</h2>
+<ul>
+<li>Ist das Motorrad unfallfrei?</li><li>Gab es Umfaller oder Stürze?</li><li>Wurde das Motorrad als Vorführer oder Mietmotorrad genutzt?</li><li>Besteht noch BMW Werksgarantie, BMW Premium Selection oder Händlergarantie?</li><li>Sind alle Wartungen bei BMW dokumentiert?</li><li>Sind alle Rückrufaktionen erledigt?</li><li>Warum wird das Motorrad verkauft?</li><li>Wie viel Profil haben Vorder- und Hinterreifen?</li><li>DOT der Reifen?</li><li>Sind Kette und Ritzel in Ordnung?</li><li>Wann ist der nächste Service fällig?</li><li>Sind beide Schlüssel vorhanden?</li><li>Funktionieren ESA, Tempomat, RDC, Heizgriffe, Keyless, Kurvenlicht und Quickshifter einwandfrei?</li><li>Ist eine Probefahrt möglich?</li><li>Gibt es Nachlackierungen oder reparierte Teile?</li>
+</ul></div>
+
+<div class="section"><h2>15. Auswertung</h2>
+<div class="summaryLine"><span>Basiswert nach Jahr/Kilometer</span><b><span id="tBase">0</span> €</b></div>
+<div class="summaryLine"><span>Extras / positive Punkte</span><b class="good">+<span id="tExtras">0</span> €</b></div>
+<div class="summaryLine"><span>Mängel / Abzüge</span><b class="bad">-<span id="tDeductions">0</span> €</b></div>
+<div class="summaryLine"><span>Ermittelter Wert</span><b><span id="tResult">0</span> €</b></div>
+<div class="summaryLine"><span>Angebotspreis</span><b><span id="tOffer">0</span> €</b></div>
+<div class="summaryLine"><span>Differenz</span><b><span id="tDiff">0</span> €</b></div>
+<div class="summaryLine"><span>Risiko-Index</span><b><span id="tRisk">0</span></b></div>
+<div class="summaryLine"><span>Kritische Punkte</span><b><span id="tCritical">0</span></b></div>
+</div>
+
+<script>
+function basePrice(year, km){
+  let p = 0;
+  if(year === 2020) p = 6800;
+  if(year === 2021) p = 7400;
+  if(year === 2022) p = 8200;
+  if(year === 2023) p = 9000;
+  if(year === 2024) p = 9700;
+  if(year === 2025) p = 10400;
+  if(year === 2026) p = 11000;
+  if(km > 10000) p -= ((km - 10000) / 1000) * 55;
+  if(km > 30000) p -= ((km - 30000) / 1000) * 35;
+  if(km < 5000) p += 300;
+  return Math.round(p / 10) * 10;
+}
+function calc(){
+  const year = parseInt(document.getElementById("year").value);
+  const km = parseInt(document.getElementById("km").value) || 0;
+  const offer = parseInt(document.getElementById("offer").value) || 0;
+  const ownersAdj = parseInt(document.getElementById("owners").value) || 0;
+  const base = basePrice(year, km);
+  let extras = 0, deductions = 0, criticalCount = 0, checkedCount = 0;
+  if(ownersAdj > 0) extras += ownersAdj;
+  if(ownersAdj < 0) deductions += Math.abs(ownersAdj);
+  document.querySelectorAll("input[type=checkbox]").forEach(c => {
+    if(c.checked){
+      checkedCount++;
+      if(c.dataset.plus) extras += parseInt(c.dataset.plus);
+      if(c.dataset.minus) deductions += parseInt(c.dataset.minus);
+      if(c.dataset.critical === "true") criticalCount++;
+    }
+  });
+  const result = base + extras - deductions;
+  const diff = result - offer;
+  const riskIndex = deductions + criticalCount * 2000;
+  let status = "";
+  if(criticalCount > 0){
+    status = '<span class="bad">🔴 NICHT KAUFEN — '+criticalCount+' kritischer Punkt vorhanden. Nur kaufen, wenn Problem schriftlich sauber geklärt ist.</span>';
+  } else if(riskIndex >= 2000){
+    status = '<span class="bad">🔴 HOHES RISIKO — nur mit starkem Nachlass kaufen.</span>';
+  } else if(diff >= 800 && riskIndex < 1000){
+    status = '<span class="good">🟢 KAUFEN — Angebot liegt '+diff+' € unter errechnetem Wert.</span>';
+  } else if(diff >= 0){
+    status = '<span class="warn">🟡 FAIR / NACHVERHANDELN — '+diff+' € unter errechnetem Wert.</span>';
+  } else if(diff > -700){
+    status = '<span class="warn">🟡 LEICHT ZU TEUER — '+Math.abs(diff)+' € über errechnetem Wert. Nachlass verlangen.</span>';
+  } else {
+    status = '<span class="bad">🔴 ZU TEUER — '+Math.abs(diff)+' € über errechnetem Wert.</span>';
+  }
+  document.getElementById("base").innerText = base;
+  document.getElementById("extras").innerText = extras;
+  document.getElementById("deductions").innerText = deductions;
+  document.getElementById("result").innerText = result;
+  document.getElementById("status").innerHTML = status;
+  document.getElementById("tBase").innerText = base;
+  document.getElementById("tExtras").innerText = extras;
+  document.getElementById("tDeductions").innerText = deductions;
+  document.getElementById("tResult").innerText = result;
+  document.getElementById("tOffer").innerText = offer;
+  document.getElementById("tDiff").innerText = diff;
+  document.getElementById("tRisk").innerText = riskIndex + " Punkte / " + checkedCount + " Haken";
+  document.getElementById("tCritical").innerText = criticalCount;
+}
+function presetFull(){
+  document.querySelectorAll('[data-extra="true"]').forEach(c => c.checked = true);
+  calc();
+}
+function presetEmpty(){
+  document.querySelectorAll('[data-extra="true"]').forEach(c => c.checked = false);
+  calc();
+}
+function resetDefects(){
+  document.querySelectorAll("input[type=checkbox]").forEach(c => { if(!c.dataset.extra){ c.checked = false; } });
+  document.getElementById("owners").value = "0";
+  calc();
+}
+document.querySelectorAll("input,select").forEach(e => e.addEventListener("input", calc));
+document.querySelectorAll("input,select").forEach(e => e.addEventListener("change", calc));
+presetFull();
+</script>
+</body>
+</html>
