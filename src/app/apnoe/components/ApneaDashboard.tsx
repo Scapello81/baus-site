@@ -1,8 +1,9 @@
 "use client";
-import { useEffect,useMemo,useRef,useState } from "react";
+import { useCallback,useEffect,useMemo,useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import styles from "../apnoe.module.css";
 import type {PlanRound,PlanType,RecordRow,TrainingRow,TrainingType} from "../types";
+import TimerV2,{loadTimerLaunch,type TimerLaunch,type TimerResult} from "./TimerV2";
 
 const DEFAULTS:Record<PlanType,PlanRound[]>={co2:[
 {hold:120,rest:120},{hold:120,rest:105},{hold:120,rest:90},{hold:120,rest:75},{hold:120,rest:60},{hold:120,rest:45},{hold:120,rest:30},{hold:120,rest:15},{hold:120,rest:0}],
@@ -12,8 +13,6 @@ const parse=(v:string)=>{const m=v.trim().match(/^(\d{1,2}):([0-5]\d)$/);return 
 const iso=(d=new Date())=>new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);
 const ru=(d:string)=>new Date(d+"T12:00:00").toLocaleDateString("ru-RU");
 
-type Timer={mode:TrainingType;rounds:PlanRound[];index:number;phase:"hold"|"rest";total:number;remaining:number;running:boolean;actual:number[]};
-
 export default function ApneaDashboard({userId,userEmail}:{userId:string;userEmail:string}){
  const supabase=useMemo(()=>createClient(),[]);
  const [plans,setPlans]=useState<Record<PlanType,PlanRound[]>>(DEFAULTS);
@@ -21,13 +20,12 @@ export default function ApneaDashboard({userId,userEmail}:{userId:string;userEma
  const [trainings,setTrainings]=useState<TrainingRow[]>([]);
  const [active,setActive]=useState<PlanType>("co2");
  const [month,setMonth]=useState(new Date());
- const [timer,setTimer]=useState<Timer|null>(null);
+ const [timer,setTimer]=useState<TimerLaunch|null>(null);
  const [edit,setEdit]=useState(false);
  const [recordOpen,setRecordOpen]=useState(false);
  const [error,setError]=useState("");
- const tick=useRef<ReturnType<typeof setInterval>|null>(null);
 
- async function load(){
+ const load=useCallback(async()=>{
   setError("");
   const [p,r,t]=await Promise.all([
    supabase.from("apnea_plans").select("id,type,rounds"),
@@ -39,38 +37,25 @@ export default function ApneaDashboard({userId,userEmail}:{userId:string;userEma
   for(const row of p.data??[])next[row.type as PlanType]=row.rounds as PlanRound[];
   for(const type of ["co2","o2"] as PlanType[])if(!(p.data??[]).some(x=>x.type===type))
    await supabase.from("apnea_plans").insert({user_id:userId,type,rounds:DEFAULTS[type]});
-  let rec=(r.data??[]) as RecordRow[];
-  if(!rec.length){
-   const seed=await supabase.from("apnea_records").insert({user_id:userId,duration_seconds:158,record_date:"2026-08-01",first_urge_seconds:60,note:"Без гипервентиляции"}).select().single();
-   if(seed.data)rec=[seed.data as RecordRow];
-  }
+  const rec=(r.data??[]) as RecordRow[];
   setPlans(next);setRecords(rec);setTrainings((t.data??[]) as TrainingRow[]);
- }
- useEffect(()=>{void load();return()=>{if(tick.current)clearInterval(tick.current)}},[]);
+ },[supabase,userId]);
+ useEffect(()=>{
+  const initId=window.setTimeout(()=>{void load();const restored=loadTimerLaunch(userId);if(restored)setTimer(restored)},0);
+  return()=>window.clearTimeout(initId);
+ },[load,userId]);
  const best=[...records].sort((a,b)=>b.duration_seconds-a.duration_seconds)[0];
  const monthBest=Math.max(0,...records.filter(x=>x.record_date.startsWith(iso().slice(0,7))).map(x=>x.duration_seconds));
  function begin(mode:TrainingType){
   const rounds=mode==="co2"||mode==="o2"?plans[mode]:[{hold:mode==="max"?600:120,rest:0}];
-  setTimer({mode,rounds,index:0,phase:"hold",total:rounds[0].hold,remaining:rounds[0].hold,running:false,actual:[]});
+  setTimer({mode,rounds});
  }
- function advance(cur:Timer,elapsed?:number):Timer|null{
-  let n={...cur};
-  if(cur.phase==="hold"){n.actual=[...cur.actual,(elapsed??cur.total)];const rest=cur.rounds[cur.index].rest;if(rest>0)return {...n,phase:"rest",total:rest,remaining:rest}}
-  const idx=cur.index+1;
-  if(idx>=cur.rounds.length){if(tick.current)clearInterval(tick.current);tick.current=null;void saveTraining(n);return null}
-  return {...n,index:idx,phase:"hold",total:cur.rounds[idx].hold,remaining:cur.rounds[idx].hold}
- }
- function toggle(){
-  if(!timer)return;
-  if(timer.running){if(tick.current)clearInterval(tick.current);tick.current=null;setTimer({...timer,running:false});return}
-  setTimer({...timer,running:true});
-  tick.current=setInterval(()=>setTimer(cur=>!cur?cur:cur.remaining>1?{...cur,remaining:cur.remaining-1}:advance(cur,cur.total)),1000);
- }
- async function saveTraining(cur:Timer){
-  const res=await supabase.from("apnea_trainings").insert({user_id:userId,training_date:iso(),type:cur.mode,planned_rounds:cur.rounds,actual_rounds:cur.actual,completed_rounds:cur.actual.length,total_rounds:cur.rounds.length}).select().single();
+ async function saveTraining(result:TimerResult){
+  const res=await supabase.from("apnea_trainings").insert({user_id:userId,training_date:iso(),type:result.mode,planned_rounds:result.rounds,actual_rounds:result.actual,completed_rounds:result.actual.length,total_rounds:result.rounds.length,note:result.completed?null:"Завершено досрочно"}).select().single();
   if(res.error){setError(res.error.message);return}
   setTrainings(x=>[res.data as TrainingRow,...x]);
-  if(cur.mode==="max"&&cur.actual[0])await addRecord(cur.actual[0],iso(),null,null,"Записано таймером");
+  if(result.mode==="max"&&result.actual[0])await addRecord(result.actual[0],iso(),null,null,"Записано Timer V2");
+  setTimer(null);
  }
  async function addRecord(seconds:number,date:string,urge:number|null,contract:number|null,note:string){
   const res=await supabase.from("apnea_records").insert({user_id:userId,duration_seconds:seconds,record_date:date,first_urge_seconds:urge,first_contraction_seconds:contract,note:note||null}).select().single();
@@ -98,7 +83,7 @@ export default function ApneaDashboard({userId,userEmail}:{userId:string;userEma
   <section className={styles.grid}><article className={styles.card}><div className={styles.head}><h2>История рекордов</h2><button className={styles.secondary} onClick={()=>setRecordOpen(true)}>Добавить</button></div><div className={styles.rows}>{records.slice(0,10).map(r=><div className={styles.row} key={r.id}><div><b>{fmt(r.duration_seconds)}</b><div className={styles.muted}>{ru(r.record_date)}{r.first_urge_seconds?` · позыв ${fmt(r.first_urge_seconds)}`:""}</div></div><span className={styles.tag}>MAX</span></div>)}</div></article>
    <article className={styles.card}><h2>Последние тренировки</h2><div className={styles.rows}>{trainings.slice(0,10).map(t=><div className={styles.row} key={t.id}><div><b>{t.type.toUpperCase()}</b><div className={styles.muted}>{ru(t.training_date)} · {t.completed_rounds}/{t.total_rounds}</div></div><span className={styles.tag}>{t.type.toUpperCase()}</span></div>)}</div></article></section>
  </div>
- {timer&&<div className={styles.overlay}><div className={styles.timerBox}><span className={styles.eyebrow}>{timer.mode.toUpperCase()}</span><h2>{timer.phase==="hold"?"Задержка":"Отдых"}</h2><div className={styles.timer}>{fmt(timer.remaining)}</div><p className={styles.muted}>Раунд {timer.index+1} из {timer.rounds.length}</p><div className={styles.progress}><span style={{width:`${((timer.total-timer.remaining)/Math.max(1,timer.total))*100}%`}}/></div><div className={styles.controls}><button className={styles.btn} onClick={toggle}>{timer.running?"Пауза":"Старт"}</button><button className={styles.secondary} onClick={()=>setTimer(cur=>!cur?cur:advance(cur,Math.max(1,cur.total-cur.remaining)))}>Завершить этап</button><button className={styles.secondary} onClick={()=>{if(tick.current)clearInterval(tick.current);tick.current=null;setTimer(null)}}>Закрыть</button></div><p className={styles.muted}>Без гипервентиляции. В воде — только с напарником.</p></div></div>}
+ {timer&&<TimerV2 userId={userId} launch={timer} onClose={()=>setTimer(null)} onComplete={saveTraining}/>}
  {edit&&<PlanEditor rounds={plans[active]} onClose={()=>setEdit(false)} onSave={async r=>{if(await savePlan(r))setEdit(false)}}/>}
  {recordOpen&&<RecordModal onClose={()=>setRecordOpen(false)} onSave={async(...args)=>{if(await addRecord(...args))setRecordOpen(false)}}/>}
  </main>
