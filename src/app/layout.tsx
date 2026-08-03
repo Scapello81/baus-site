@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import PwaRegistration from "./PwaRegistration";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -15,6 +16,24 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "BAUS Training",
   description: "Тренировки статического апноэ",
+  applicationName: "BAUS Training",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    apple: "/pwa-180.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "BAUS Training",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport: Viewport = {
+  colorScheme: "dark",
+  themeColor: "#0b1018",
 };
 
 export default function RootLayout({
@@ -26,6 +45,7 @@ export default function RootLayout({
     <html lang="ru">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         {children}
+        <PwaRegistration />
       </body>
     </html>
   );
