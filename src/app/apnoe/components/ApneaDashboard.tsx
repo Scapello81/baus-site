@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase-browser";
 import styles from "../apnoe.module.css";
 import type {PlanRound,PlanType,RecordRow,TrainingRow,TrainingType} from "../types";
 import TimerV2,{loadTimerLaunch,type TimerLaunch,type TimerResult} from "./TimerV2";
+import PwaInstallCard from "./PwaInstallCard";
 
 const DEFAULTS:Record<PlanType,PlanRound[]>={co2:[
 {hold:120,rest:120},{hold:120,rest:105},{hold:120,rest:90},{hold:120,rest:75},{hold:120,rest:60},{hold:120,rest:45},{hold:120,rest:30},{hold:120,rest:15},{hold:120,rest:0}],
@@ -90,6 +91,7 @@ export default function ApneaDashboard({userId,userEmail}:{userId:string;userEma
  return <main className={styles.page}><div className={styles.shell}>
   <header className={styles.top}><div><span className={styles.eyebrow}>BAUS Training</span><h1 className={styles.title}>Статическое апноэ</h1><p className={styles.muted}>{userEmail}</p></div><div className={styles.controls}><button className={styles.secondary} onClick={()=>void load()}>Обновить</button><button className={styles.secondary} onClick={()=>void signOut()}>Выйти</button></div></header>
   {error&&<p className={styles.error}>{error}</p>}
+  <PwaInstallCard />
   <section className={`${styles.card} ${styles.hero}`}><div><span className={styles.eyebrow}>Текущий рекорд</span><div className={styles.record}>{best?fmt(best.duration_seconds):"—"}</div><p className={styles.muted}>{best?ru(best.record_date):"Нет результата"}</p></div>
    <div className={styles.buttons}><button className={styles.btn} onClick={()=>begin("co2")}>CO₂-тренировка</button><button className={styles.btn} onClick={()=>begin("o2")}>O₂-тренировка</button><button className={styles.danger} onClick={()=>begin("max")}>Максимум</button><button className={styles.secondary} onClick={()=>begin("free")}>Свободный таймер</button></div></section>
   <section className={styles.grid}><article className={styles.card}><div className={styles.head}><div><span className={styles.eyebrow}>План</span><h2>{active.toUpperCase()}-таблица</h2></div><div><button className={styles.secondary} onClick={()=>setActive(active==="co2"?"o2":"co2")}>{active==="co2"?"O₂":"CO₂"}</button> <button className={styles.secondary} onClick={()=>setEdit(true)}>Изменить</button></div></div><div className={styles.rows}>{plans[active].map((r,i)=><div className={styles.row} key={i}><span>Раунд {i+1}</span><b>{fmt(r.hold)} / {fmt(r.rest)}</b></div>)}</div></article>
