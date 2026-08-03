@@ -25,6 +25,12 @@ export default function ApneaDashboard({userId,userEmail}:{userId:string;userEma
  const [recordOpen,setRecordOpen]=useState(false);
  const [error,setError]=useState("");
 
+ async function signOut(){
+  const {error:signOutError}=await supabase.auth.signOut();
+  if(signOutError){setError(signOutError.message);return}
+  window.location.assign("/login");
+ }
+
  const load=useCallback(async()=>{
   setError("");
   const [p,r,t]=await Promise.all([
@@ -73,7 +79,7 @@ export default function ApneaDashboard({userId,userEmail}:{userId:string;userEma
   if(res.data)setTrainings(x=>[res.data as TrainingRow,...x]);if(res.error)setError(res.error.message);
  }
  return <main className={styles.page}><div className={styles.shell}>
-  <header className={styles.top}><div><span className={styles.eyebrow}>BAUS Training</span><h1 className={styles.title}>Статическое апноэ</h1><p className={styles.muted}>{userEmail}</p></div><button className={styles.secondary} onClick={()=>void load()}>Обновить</button></header>
+  <header className={styles.top}><div><span className={styles.eyebrow}>BAUS Training</span><h1 className={styles.title}>Статическое апноэ</h1><p className={styles.muted}>{userEmail}</p></div><div className={styles.controls}><button className={styles.secondary} onClick={()=>void load()}>Обновить</button><button className={styles.secondary} onClick={()=>void signOut()}>Выйти</button></div></header>
   {error&&<p className={styles.error}>{error}</p>}
   <section className={`${styles.card} ${styles.hero}`}><div><span className={styles.eyebrow}>Текущий рекорд</span><div className={styles.record}>{best?fmt(best.duration_seconds):"—"}</div><p className={styles.muted}>{best?ru(best.record_date):"Нет результата"}</p></div>
    <div className={styles.buttons}><button className={styles.btn} onClick={()=>begin("co2")}>CO₂-тренировка</button><button className={styles.btn} onClick={()=>begin("o2")}>O₂-тренировка</button><button className={styles.danger} onClick={()=>begin("max")}>Максимум</button><button className={styles.secondary} onClick={()=>begin("free")}>Свободный таймер</button></div></section>
