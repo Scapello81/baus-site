@@ -33,18 +33,27 @@ export default function ApneaDashboard({userId,userEmail}:{userId:string;userEma
 
  const load=useCallback(async()=>{
   setError("");
-  const [p,r,t]=await Promise.all([
-   supabase.from("apnea_plans").select("id,type,rounds"),
-   supabase.from("apnea_records").select("*").order("record_date",{ascending:false}),
-   supabase.from("apnea_trainings").select("*").order("training_date",{ascending:false})
-  ]);
-  const e=p.error||r.error||t.error;if(e){setError(e.message);return}
-  const next={...DEFAULTS};
-  for(const row of p.data??[])next[row.type as PlanType]=row.rounds as PlanRound[];
-  for(const type of ["co2","o2"] as PlanType[])if(!(p.data??[]).some(x=>x.type===type))
-   await supabase.from("apnea_plans").insert({user_id:userId,type,rounds:DEFAULTS[type]});
-  const rec=(r.data??[]) as RecordRow[];
-  setPlans(next);setRecords(rec);setTrainings((t.data??[]) as TrainingRow[]);
+  for(let attempt=0;attempt<2;attempt++){
+   const [p,r,t]=await Promise.all([
+    supabase.from("apnea_plans").select("id,type,rounds"),
+    supabase.from("apnea_records").select("*").order("record_date",{ascending:false}),
+    supabase.from("apnea_trainings").select("*").order("training_date",{ascending:false})
+   ]);
+   const e=p.error||r.error||t.error;
+   if(e){
+    if(attempt===0&&e.message.includes("JWT issued at future")){
+     await new Promise(resolve=>window.setTimeout(resolve,1500));
+     continue;
+    }
+    setError(e.message);return;
+   }
+   const next={...DEFAULTS};
+   for(const row of p.data??[])next[row.type as PlanType]=row.rounds as PlanRound[];
+   for(const type of ["co2","o2"] as PlanType[])if(!(p.data??[]).some(x=>x.type===type))
+    await supabase.from("apnea_plans").insert({user_id:userId,type,rounds:DEFAULTS[type]});
+   const rec=(r.data??[]) as RecordRow[];
+   setPlans(next);setRecords(rec);setTrainings((t.data??[]) as TrainingRow[]);return;
+  }
  },[supabase,userId]);
  useEffect(()=>{
   const initId=window.setTimeout(()=>{void load();const restored=loadTimerLaunch(userId);if(restored)setTimer(restored)},0);
