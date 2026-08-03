@@ -1,0 +1,42 @@
+.page {
+  --auth-bg: #0b1018;
+  --auth-panel: #121a26;
+  --auth-panel-strong: #182333;
+  --auth-line: #26364a;
+  --auth-text: #f4f7fb;
+  --auth-muted: #9aabc0;
+  --auth-accent: #65d6b5;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: var(--auth-text);
+  background: radial-gradient(circle at 15% 0%, rgba(101, 214, 181, 0.14), transparent 34rem), var(--auth-bg);
+}
+
+.card {
+  width: min(440px, 100%);
+  display: grid;
+  gap: 18px;
+  padding: clamp(24px, 6vw, 38px);
+  border: 1px solid var(--auth-line);
+  border-radius: 24px;
+  background: rgba(18, 26, 38, 0.96);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+}
+
+.brand { color: var(--auth-accent); font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
+.title { margin: 0; font-size: clamp(30px, 8vw, 42px); line-height: 1; }
+.description, .hint, .footer { color: var(--auth-muted); line-height: 1.55; }
+.form { display: grid; gap: 14px; }
+.field { display: grid; gap: 7px; color: var(--auth-muted); font-size: 14px; font-weight: 700; }
+.input { width: 100%; padding: 13px 14px; border: 1px solid var(--auth-line); border-radius: 12px; outline: none; color: var(--auth-text); background: var(--auth-panel-strong); font: inherit; }
+.input:focus { border-color: var(--auth-accent); box-shadow: 0 0 0 3px rgba(101, 214, 181, 0.12); }
+.button { min-height: 48px; border: 0; border-radius: 13px; color: #062219; background: var(--auth-accent); cursor: pointer; font: inherit; font-weight: 850; }
+.button:disabled { cursor: wait; opacity: 0.62; }
+.link { color: var(--auth-accent); font-weight: 750; }
+.links { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 14px; }
+.message, .error { padding: 11px 13px; border-radius: 12px; line-height: 1.45; }
+.message { color: #bdf6e5; background: rgba(101, 214, 181, 0.1); }
+.error { color: #ffb4b4; background: rgba(255, 107, 107, 0.1); }
+.footer { padding-top: 4px; border-top: 1px solid var(--auth-line); font-size: 14px; text-align: center; }

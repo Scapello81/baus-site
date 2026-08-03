@@ -7,7 +7,7 @@ export async function GET(request: Request) {
 
   let next = searchParams.get("next") ?? "/apnoe";
 
-  if (!next.startsWith("/")) {
+  if (!next.startsWith("/") || next.startsWith("//")) {
     next = "/apnoe";
   }
 

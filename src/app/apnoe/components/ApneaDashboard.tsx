@@ -25,20 +25,35 @@ export default function ApneaDashboard({userId,userEmail}:{userId:string;userEma
  const [recordOpen,setRecordOpen]=useState(false);
  const [error,setError]=useState("");
 
+ async function signOut(){
+  const {error:signOutError}=await supabase.auth.signOut();
+  if(signOutError){setError(signOutError.message);return}
+  window.location.assign("/login");
+ }
+
  const load=useCallback(async()=>{
   setError("");
-  const [p,r,t]=await Promise.all([
-   supabase.from("apnea_plans").select("id,type,rounds"),
-   supabase.from("apnea_records").select("*").order("record_date",{ascending:false}),
-   supabase.from("apnea_trainings").select("*").order("training_date",{ascending:false})
-  ]);
-  const e=p.error||r.error||t.error;if(e){setError(e.message);return}
-  const next={...DEFAULTS};
-  for(const row of p.data??[])next[row.type as PlanType]=row.rounds as PlanRound[];
-  for(const type of ["co2","o2"] as PlanType[])if(!(p.data??[]).some(x=>x.type===type))
-   await supabase.from("apnea_plans").insert({user_id:userId,type,rounds:DEFAULTS[type]});
-  const rec=(r.data??[]) as RecordRow[];
-  setPlans(next);setRecords(rec);setTrainings((t.data??[]) as TrainingRow[]);
+  for(let attempt=0;attempt<2;attempt++){
+   const [p,r,t]=await Promise.all([
+    supabase.from("apnea_plans").select("id,type,rounds"),
+    supabase.from("apnea_records").select("*").order("record_date",{ascending:false}),
+    supabase.from("apnea_trainings").select("*").order("training_date",{ascending:false})
+   ]);
+   const e=p.error||r.error||t.error;
+   if(e){
+    if(attempt===0&&e.message.includes("JWT issued at future")){
+     await new Promise(resolve=>window.setTimeout(resolve,1500));
+     continue;
+    }
+    setError(e.message);return;
+   }
+   const next={...DEFAULTS};
+   for(const row of p.data??[])next[row.type as PlanType]=row.rounds as PlanRound[];
+   for(const type of ["co2","o2"] as PlanType[])if(!(p.data??[]).some(x=>x.type===type))
+    await supabase.from("apnea_plans").insert({user_id:userId,type,rounds:DEFAULTS[type]});
+   const rec=(r.data??[]) as RecordRow[];
+   setPlans(next);setRecords(rec);setTrainings((t.data??[]) as TrainingRow[]);return;
+  }
  },[supabase,userId]);
  useEffect(()=>{
   const initId=window.setTimeout(()=>{void load();const restored=loadTimerLaunch(userId);if(restored)setTimer(restored)},0);
@@ -73,7 +88,7 @@ export default function ApneaDashboard({userId,userEmail}:{userId:string;userEma
   if(res.data)setTrainings(x=>[res.data as TrainingRow,...x]);if(res.error)setError(res.error.message);
  }
  return <main className={styles.page}><div className={styles.shell}>
-  <header className={styles.top}><div><span className={styles.eyebrow}>BAUS Training</span><h1 className={styles.title}>Статическое апноэ</h1><p className={styles.muted}>{userEmail}</p></div><button className={styles.secondary} onClick={()=>void load()}>Обновить</button></header>
+  <header className={styles.top}><div><span className={styles.eyebrow}>BAUS Training</span><h1 className={styles.title}>Статическое апноэ</h1><p className={styles.muted}>{userEmail}</p></div><div className={styles.controls}><button className={styles.secondary} onClick={()=>void load()}>Обновить</button><button className={styles.secondary} onClick={()=>void signOut()}>Выйти</button></div></header>
   {error&&<p className={styles.error}>{error}</p>}
   <section className={`${styles.card} ${styles.hero}`}><div><span className={styles.eyebrow}>Текущий рекорд</span><div className={styles.record}>{best?fmt(best.duration_seconds):"—"}</div><p className={styles.muted}>{best?ru(best.record_date):"Нет результата"}</p></div>
    <div className={styles.buttons}><button className={styles.btn} onClick={()=>begin("co2")}>CO₂-тренировка</button><button className={styles.btn} onClick={()=>begin("o2")}>O₂-тренировка</button><button className={styles.danger} onClick={()=>begin("max")}>Максимум</button><button className={styles.secondary} onClick={()=>begin("free")}>Свободный таймер</button></div></section>
