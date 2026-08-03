@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   description: "Тренировки статического апноэ",
   applicationName: "BAUS Training",
   manifest: "/manifest.webmanifest",
+  icons: {
+    apple: "/pwa-180.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
